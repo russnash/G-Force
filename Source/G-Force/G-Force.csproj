@@ -49,7 +49,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy /y G-Force.dll D:\KSP_MOD\GameData\G-Force\plugins\</PostBuildEvent>
+    <PostBuildEvent>copy /y G-Force.dll D:\KSP_MOD\GameData\G-Force\plugins</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
