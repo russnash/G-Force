@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,42 +11,44 @@ namespace G_Force
     public class G_Force : MonoBehaviour
     {
         double currentG;
-        float initialFOV;
-        Texture2D redout = new Texture2D(Screen.width, Screen.height);
-        Texture2D blackout = new Texture2D(Screen.width, Screen.height);
+        Color colorOut;
+        float alpha;
+        Texture2D whiteTexture = new Texture2D(32, 32, TextureFormat.ARGB32, false);
 
         protected void Start()
         {
             DontDestroyOnLoad(this);
-            initialFOV = FlightCamera.fetch.fovDefault;
-            RenderingManager.AddToPostDrawQueue(3, new Callback(drawEffect));
+            string path = KSPUtil.ApplicationRootPath.Replace(@"\", "/") + "/GameData/G-Force/White32x32.png";
+            byte[] texture = File.ReadAllBytes(path);
+            whiteTexture.LoadImage(texture);
+            RenderingManager.AddToPostDrawQueue(3, new Callback(postDraw));
         }
 
-        private void drawEffect()
+        void postDraw()
         {
-            float factor = (float)currentG / 1.5f;
-            ScreenMessages.PostScreenMessage(currentG.ToString() + " / " + factor.ToString());
-            guiTexture.pixelInset = new Rect(0f, 0f, Screen.width, Screen.height);
-            
-
-            if (factor > 1f)
-            {
-                //FlightCamera.fetch.SetFoV(initialFOV / factor);
-                guiTexture.color = new Color(0.0f, 0.0f, 0.0f, factor / 10);
-                guiTexture.enabled = true;
-            }
-            else
-            {
-                //FlightCamera.fetch.SetFoV(initialFOV);
-                guiTexture.color = Color.clear;
-                guiTexture.enabled = false;
-            }
-            
+            //ScreenMessages.PostScreenMessage(currentG.ToString() + " / " + alpha.ToString());
+            colorOut.a = alpha;
+            GUI.color = colorOut;
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), whiteTexture);
+            GUI.color = Color.white;
         }
 
         public void Update()
         {
             currentG = FlightGlobals.ActiveVessel.geeForce;
+
+            if (currentG > 0)
+            {
+                colorOut = Color.black;
+                alpha = (float)currentG / 9;
+                if (currentG <= 1)
+                {
+                    alpha = 0;
+                }
+            } else {
+                colorOut = Color.red;
+                alpha = (float)Math.Abs(currentG) / 9;
+            }
         }
     }
 }
