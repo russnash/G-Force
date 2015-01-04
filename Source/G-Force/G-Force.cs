@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace G_Force
 {
-    [KSPAddon(KSPAddon.Startup.Flight, true)]
+    [KSPAddon(KSPAddon.Startup.Flight, false)]
     public class G_Force : MonoBehaviour
     {
         double currentG;
@@ -17,7 +17,7 @@ namespace G_Force
 
         protected void Start()
         {
-            DontDestroyOnLoad(this);
+            //DontDestroyOnLoad(this);
             string path = KSPUtil.ApplicationRootPath.Replace(@"\", "/") + "/GameData/G-Force/White32x32.png";
             byte[] texture = File.ReadAllBytes(path);
             whiteTexture.LoadImage(texture);
