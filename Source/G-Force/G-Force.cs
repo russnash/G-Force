@@ -12,7 +12,7 @@ namespace G_Force
     {
         Texture2D whiteTexture = new Texture2D(32, 32, TextureFormat.ARGB32, false);
         Color colorOut = new Color();
-        
+
         /// <summary>
         /// This is the cumulative effect of G's which is increasingly negative to represent a redout condition 
         /// and increasingly positive to represent a blackout condition. As G forces continue, the cumulativeG
@@ -22,6 +22,9 @@ namespace G_Force
         double cumulativeG = 0;
         double currentG;
         double factor;
+        bool isPositiveG = true;
+        CelestialBody mainBody;
+        Vector3d mainBodyCOM;
 
         protected void Start()
         {
@@ -30,13 +33,16 @@ namespace G_Force
             byte[] texture = File.ReadAllBytes(path);
             whiteTexture.LoadImage(texture);
 
-            // Hook into the rendering queue
-            RenderingManager.AddToPostDrawQueue(3, new Callback(postDraw));
+            // Hook into the rendering queue to draw the G effects
+            RenderingManager.AddToPostDrawQueue(3, new Callback(drawGEffects));
+
+            // Add another rendering queue hook for the GUI
+            RenderingManager.AddToPostDrawQueue(4, new Callback(drawGUI));
         }
 
-        void postDraw()
+        void drawGEffects()
         {
-            if (cumulativeG >= 0)
+            if (isPositiveG)
             {
                 colorOut = Color.black;
                 colorOut.a = (float)cumulativeG / 32767;
@@ -44,64 +50,55 @@ namespace G_Force
             else
             {
                 colorOut = Color.red;
-                colorOut.a = (float)Math.Abs(cumulativeG) / 32767;
+                colorOut.a = (float)currentG / 2;
             }
 
             //ScreenMessages.PostScreenMessage(cumulativeG.ToString() + " / " + colorOut.a.ToString());
- 
+
             GUI.color = colorOut;
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), whiteTexture);
             GUI.color = Color.white;
         }
 
+        void drawGUI()
+        {
+
+        }
+
         public void Update()
         {
+            // Retrieve the orbited celestial body.
+            mainBody = FlightGlobals.ActiveVessel.mainBody;
+
+            // Retrieve the position of the main orbited bodies COM in world coords.
+            mainBodyCOM = mainBody.position;
+
             // Retrieve the current G forces.
             currentG = FlightGlobals.ActiveVessel.geeForce;
 
-            // Experiencing positive G's.
-            if (currentG >= 0)
+            // If we're experiencing 4G's plus, grow the cumulativeG with relation to the current G and ensure
+            // we don't wrap to a negative value.
+            if (currentG >= 4)
             {
-                // If we're experiencing 4G's plus, grow the cumulativeG with relation to the current G and ensure
-                // we don't wrap to a negative value.
-                if (currentG >= 4)
+                factor = currentG * currentG;
+                if (32767 - cumulativeG <= factor)
                 {
-                    factor = currentG * currentG;
-                    if (32767 - cumulativeG <= factor)
-                    {
-                        cumulativeG = 32767;
-                    }
-                    else
-                    {
-                        cumulativeG += factor;
-                    }
+                    cumulativeG = 32767;
                 }
-                // If we're experiencing between 0 and 4G's, reduce the cumulativeG with relation to the current G
-                // and ensure we don't drop below 0.
                 else
                 {
-                    factor = 10 - currentG;
-                    cumulativeG -= factor * factor;
-                    if (cumulativeG < 0)
-                    {
-                        cumulativeG = 0;
-                    }
+                    cumulativeG += factor;
                 }
             }
-
-            // Experiencing negative G's
-            if (currentG < 0)
+            // If we're experiencing between 0 and 4G's, reduce the cumulativeG with relation to the current G
+            // and ensure we don't drop below 0.
+            else
             {
-                // Grow the cumulativeG (in the negative direction) with relation to the current G and ensure we don't
-                // wrap to positive G's.
-                factor = currentG * currentG * currentG;
-                if (-32767 - factor <= cumulativeG)
+                factor = 10 - currentG;
+                cumulativeG -= factor * factor;
+                if (cumulativeG < 0)
                 {
-                    cumulativeG = -32767;
-                }
-                else
-                {
-                    cumulativeG += (Int16)factor;
+                    cumulativeG = 0;
                 }
             }
         }
